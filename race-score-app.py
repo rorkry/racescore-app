@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
-st.title("📋 出馬表フィルタ - 印選択 + 過去走2段表示")
+st.title("📋 出馬表フィルタ - 印＋馬柱横並び＋詳細表示")
 
 tab1, tab2 = st.tabs(["🟩 出走予定馬（想定）", "🟦 枠順確定後（確定出馬）"])
 
@@ -29,12 +29,23 @@ def level_to_colored_star(lv):
 
 def format_past_row(row):
     try:
+        # 通過順位：存在する列だけ使う + 小数を整数に変換
+        positions = []
+        for col in ["2角", "3角", "4角"]:
+            val = row.get(col)
+            if pd.notnull(val):
+                try:
+                    positions.append(str(int(float(val))))
+                except:
+                    pass
+        pos_text = "→".join(positions)
+
         return f"""
         <div style='line-height:1.2; font-size:11px; text-align:center'>
             <div style='font-size:15px; font-weight:bold;'>{row['着順']}</div>
             <div>{row['距離']}m / {row['走破タイム']} / {level_to_colored_star(row['レース印３'])}</div>
             <div style='font-size:10px;'>
-                上り:{row['上り3F']} / 通過:{row['2角']}→{row['3角']}→{row['4角']}<br>
+                上り:{row['上り3F']} / {pos_text}<br>
                 馬体:{row['馬体重']}kg / 斤量:{row['斤量']} / 騎手:{row['騎手']}
             </div>
         </div>
@@ -58,15 +69,18 @@ def generate_past5_display(df_shutsuba, entry_names):
     df_past5.reset_index(inplace=True)
     return df_past5
 
-def display_race_table(df):
+def display_race_table(df, race_label):
     for idx, row in df.iterrows():
-        col1, col2 = st.columns([1, 12])
+        col1, col2, col3 = st.columns([1, 2, 12])
+
         with col1:
-            st.selectbox("印", 印リスト, key=f"mark_{row['馬名']}_{idx}")
+            st.selectbox("印", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}")
+
         with col2:
             name_display = f"<div style='text-align:center; font-weight:bold;'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>"
             st.markdown(name_display, unsafe_allow_html=True)
 
+        with col3:
             html_row = "<table style='width:100%; text-align:center'><tr>"
             for col in [f"{i}走前" for i in range(1, 6)]:
                 html = row[col] if pd.notnull(row[col]) else "ー"
@@ -74,7 +88,7 @@ def display_race_table(df):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-# 出走予定タブ
+# 出走予定馬タブ
 with tab1:
     st.subheader("🔽 出走予定馬CSV & 出馬表CSVをアップロード")
 
@@ -87,10 +101,10 @@ with tab1:
         df_entry.columns = [col.strip() for col in df_entry.columns]
         df_shutsuba.columns = [col.strip() for col in df_shutsuba.columns]
 
-        # 除外不要なカラム削除
+        # 不要カラム削除
         df_entry.drop(columns=["クラス名", "馬場状態", "距離", "頭数", "所在地"], errors="ignore", inplace=True)
 
-        # 所属を調教師と結合
+        # 所属 + 調教師結合
         df_entry["調教師"] = df_entry["所属"].astype(str) + "／" + df_entry["調教師"].astype(str)
         df_entry.drop(columns=["所属"], inplace=True)
 
@@ -114,9 +128,9 @@ with tab1:
                     errors="ignore"
                 ).reset_index(drop=True)
                 st.markdown(f"### 🏁 {race}")
-                display_race_table(race_df)
+                display_race_table(race_df, race)
 
-# 確定出馬タブ
+# 確定出馬表タブ
 with tab2:
     st.subheader("✅ 確定出馬表CSVをアップロード")
 
