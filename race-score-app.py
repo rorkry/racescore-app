@@ -52,7 +52,7 @@ if entry_file and level_file:
 
             if not final.empty and final.shape[1] > 0:
                 final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
-                final.reset_index(inplace=True)
+                final.reset_index(inplace=True)  # ここで「馬名」列が復活する
 
                 # 検索UI
                 selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
