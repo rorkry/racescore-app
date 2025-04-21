@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import re
 from io import StringIO
+import numpy as np
 
 st.set_page_config(page_title="レース出馬表スコア表示", layout="wide")
 st.title("🏇 出馬表（レースレベルA/Bスコア付き）")
@@ -73,17 +74,17 @@ if entry_df is not None and level_df is not None:
         fig.update_layout(height=150, margin=dict(l=10, r=10, t=30, b=10))
         return fig
 
-    # Bスコア予測（仮にランダムで生成中。モデル連携で置き換え可）
-    import numpy as np
+    # Bスコア（仮データ／AIモデルで置換可）
     df["race_score_B"] = np.random.uniform(1, 5, len(df)).round(1)
 
     st.markdown("### 出馬表（レースレベル）")
-    for _, row in df.iterrows():
-        cols = st.columns([3, 1, 2])
-        cols[0].markdown(f"**距離:** {row['距離']} ／ **馬場:** {row['馬場状態']} ／ **基準タイム:** {row['基準タイム']}")
-        cols[1].markdown(f"A方式：{row['Aスコア']}")
-        with cols[2]:
-            st.plotly_chart(render_gauge(row['race_score_B']), use_container_width=True)
+    for idx, row in df.iterrows():
+        with st.container():  # ← ★エラー防止用にcontainer追加！
+            cols = st.columns([3, 1, 2])
+            cols[0].markdown(f"**距離:** {row['距離']} ／ **馬場:** {row['馬場状態']} ／ **基準タイム:** {row['基準タイム']}")
+            cols[1].markdown(f"A方式：{row['Aスコア']}")
+            with cols[2]:
+                st.plotly_chart(render_gauge(row['race_score_B']), use_container_width=True)
 
 else:
     st.info("CSVを2つアップロードしてください（出馬表 / レースレベルマスタ）")
