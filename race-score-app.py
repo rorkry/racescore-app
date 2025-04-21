@@ -6,7 +6,7 @@ import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
 
-# 印のselectboxと選択肢ドロップダウンを白背景・黒文字にするCSS追加（最新版）
+# CSS: 印のselectboxを白背景・黒文字に。ドロップダウン候補にも強制適用。
 st.markdown("""
     <style>
     div[data-baseweb="select"] {
