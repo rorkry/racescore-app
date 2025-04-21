@@ -25,7 +25,7 @@ def level_to_colored_star(lv):
         "D": "★★☆☆☆",
         "E": "★☆☆☆☆",
     }.get(lv, "ー")
-    return f"<span style='color:black; font-weight:bold; background-color:#f5f5f5; padding:2px 5px;'>{stars}</span>"
+    return f"<span style='font-weight:bold'>{stars}</span>"
 
 
 def format_past_row(row):
@@ -39,7 +39,7 @@ def format_past_row(row):
 
         agari = row["上り3F"]
         return f"""
-        <div style='line-height:1.2; font-size:11px; text-align:center; background-color:#f5f5f5; padding:4px;'>
+        <div style='line-height:1.2; font-size:11px; text-align:center'>
             <div style='font-size:15px; font-weight:bold;'>{row['着順']}</div>
             <div>{row['距離']}m / {row['走破タイム']} / {level_to_colored_star(row['レース印３'])}</div>
             <div style='font-size:10px;'>
@@ -89,10 +89,9 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-        with st.expander(f"📓 {row['馬名']} へのメモ", expanded=False):
-            memo = memo_data.get(row["馬名"], "")
-            new_memo = st.text_area("", memo, key=f"memo_{race_label}_{row['馬名']}_{idx}")
-            memo_data[row["馬名"]] = new_memo
+        memo = memo_data.get(row["馬名"], "")
+        new_memo = st.text_area("", memo, key=f"memo_{race_label}_{row['馬名']}_{idx}")
+        memo_data[row["馬名"]] = new_memo
 
     if st.button("📂 メモをローカルjsonに保存", key=f"save_memo_{race_label}"):
         with open(MEMO_PATH, "w", encoding="utf-8") as f:
