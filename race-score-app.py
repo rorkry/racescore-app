@@ -17,33 +17,30 @@ with tab1:
     s_uploaded = st.file_uploader("出馬表CSV（全馬）", type="csv", key="shutsuba")
 
     if e_uploaded and s_uploaded:
-        # 出走予定馬CSV 読み込み（utf-8-sig or shift_jis）
+        # 出走予定馬CSV 読み込み
         try:
             df_entry = pd.read_csv(e_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.EmptyDataError):
             try:
                 df_entry = pd.read_csv(e_uploaded, encoding="shift_jis")
             except Exception:
-                st.error("❌ 出走予定馬CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
+                st.error("❌ 出走予定馬CSVの読み込みに失敗しました。")
                 st.stop()
 
-        # 出馬表CSV 読み込み（utf-8-sig or shift_jis）
+        # 出馬表CSV 読み込み
         try:
             df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.ParserError):
             try:
                 df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
             except Exception:
-                st.error("❌ 出馬表CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
+                st.error("❌ 出馬表CSVの読み込みに失敗しました。")
                 st.stop()
 
-        # 馬名列を自動検出
-        entry_name_col = [col for col in df_entry.columns if "馬" in col and "名" in col]
-        shutsuba_name_col = [col for col in df_shutsuba.columns if "馬" in col and "名" in col]
-
-        if entry_name_col and shutsuba_name_col:
-            entry_names = df_entry[entry_name_col[0]].astype(str).str.strip().unique().tolist()
-            df_filtered = df_shutsuba[df_shutsuba[shutsuba_name_col[0]].astype(str).str.strip().isin(entry_names)]
+        # 🟡 明示的に馬名列を指定
+        if "馬名" in df_entry.columns and "馬名" in df_shutsuba.columns:
+            entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
+            df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)]
 
             st.success(f"✅ {len(df_filtered)}頭分のフィルタ済出馬表")
             st.dataframe(df_filtered)
@@ -51,7 +48,7 @@ with tab1:
             csv = df_filtered.to_csv(index=False, encoding="utf-8-sig")
             st.download_button("📥 フィルタ出馬表CSVをダウンロード", csv, file_name="フィルタ出馬表.csv")
         else:
-            st.error("❌ '馬名' 列が見つかりませんでした。CSVの列構成を確認してください。")
+            st.error("❌ '馬名' 列が出走予定馬CSVまたは出馬表CSVに見つかりませんでした。")
 
 # --------------------------
 # 🟦 枠順確定後（確定出馬）
