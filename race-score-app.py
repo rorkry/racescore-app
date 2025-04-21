@@ -45,7 +45,6 @@ def format_past_row(row, fastest_time):
                 positions.append(str(int(float(val))))
         pos_text = "→".join(positions)
 
-        # 上がり最速時間の色付け
         agari = row["上り3F"]
         if pd.notnull(agari) and agari == fastest_time:
             agari = f"<span style='color:red; font-weight:bold'>{agari}</span>"
@@ -105,19 +104,16 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-        # メモ
         memo = memo_data.get(row["馬名"], "")
-        new_memo = st.text_area(f"✍ {row['馬名']} へのメモ", memo, key=f"memo_{row['馬名']}_{idx}")
+        new_memo = st.text_area(f"✍ {row['馬名']} へのメモ", memo, key=f"memo_{race_label}_{row['馬名']}_{idx}")
         memo_data[row["馬名"]] = new_memo
 
-    # ダウンロード
-    if st.button("📂 メモをローカルjsonに保存"):
+    if st.button("📂 メモをローカルjsonに保存", key=f"save_memo_{race_label}"):
         with open(MEMO_PATH, "w", encoding="utf-8") as f:
             json.dump(memo_data, f, ensure_ascii=False, indent=2)
         st.success("メモをlocal_memo.jsonに保存しました")
 
 
-# アップロード
 entry_file = st.file_uploader("出走予定馬CSV", type="csv")
 shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
 
