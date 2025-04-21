@@ -37,17 +37,25 @@ if entry_file and level_file:
     def format_row(row):
         return f"{row['日付(yyyy.mm.dd)']}\n{row['距離']} {row['馬場状態']}\n{row['走破タイム']} {row['level_star']}"
 
-    merged["まとめ"] = merged.apply(format_row, axis=1)
-    grouped = merged.groupby("馬名").tail(5)
-    final = grouped.groupby("馬名").apply(lambda g: pd.Series(g["まとめ"].values[:5]))
-    final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
-    final.reset_index(inplace=True)
+    if not merged.empty and "まとめ" not in merged.columns:
+        merged["まとめ"] = merged.apply(format_row, axis=1)
 
-    # 検索UI
-    selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
-    filtered = final[final["馬名"] == selected_horse]
+    if not merged.empty and "まとめ" in merged.columns:
+        grouped = merged.groupby("馬名").tail(5)
+        final = grouped.groupby("馬名").apply(lambda g: pd.Series(g["まとめ"].values[:5]))
 
-    st.dataframe(filtered, use_container_width=True)
+        if not final.empty:
+            final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
+            final.reset_index(inplace=True)
+
+            # 検索UI
+            selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
+            filtered = final[final["馬名"] == selected_horse]
+            st.dataframe(filtered, use_container_width=True)
+        else:
+            st.warning("出走馬に5走以上のデータがありません。")
+    else:
+        st.warning("アップロードされた出馬表データが不正か、空のようです。")
 
 else:
     st.info("出馬表CSVとレースレベルマスタCSVをアップロードしてください。")
