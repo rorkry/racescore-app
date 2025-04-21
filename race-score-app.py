@@ -41,12 +41,12 @@ if entry_file and level_file:
         if "まとめ" not in merged.columns:
             merged["まとめ"] = merged.apply(format_row, axis=1)
 
-        horses = merged["馬名"].unique()
+        # 高速化：辞書でグループ化
+        horse_groups = dict(tuple(merged.groupby("馬名")))
         rows = []
 
-        for name in horses:
-            runs = merged[merged["馬名"] == name].sort_values("race_id").tail(5)
-            summary = runs["まとめ"].tolist()
+        for name, runs in horse_groups.items():
+            summary = runs.sort_values("race_id")["まとめ"].tail(5).tolist()
             row = [name] + summary + ["" for _ in range(5 - len(summary))]
             rows.append(row)
 
