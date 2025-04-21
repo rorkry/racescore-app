@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="🏇 出馬表（レースレベル付き）", layout="wide")
-st.title("📋 出馬表フィルタ（G列レースレベル直読み）")
+st.title("📋 出馬表フィルタ（G列レースレベル直読み + 開催地R対応）")
 
 # CSVアップロード
-entry_csv = st.file_uploader("📤 出走予定馬CSV（馬名・レース名）", type="csv")
+entry_csv = st.file_uploader("📤 出走予定馬CSV（馬名・開催地・R・レース名）", type="csv")
 shutsuba_csv = st.file_uploader("📤 出馬表CSV（G列にA〜Eのレースレベル）", type="csv")
 
 if entry_csv and shutsuba_csv:
@@ -60,21 +60,30 @@ if entry_csv and shutsuba_csv:
         # 出走予定馬とマージ
         df_show = pd.merge(df_entry, df_past5, on="馬名", how="left")
 
-        # レース名でグループ分け表示
-        race_names = df_show["レース名"].dropna().unique().tolist()
-        tabs = st.tabs(race_names)
+        # ✅ 表示レース名（開催地 + R + レース名）を追加
+        df_show["表示レース名"] = (
+            df_show["開催地"].astype(str).str.strip() +
+            df_show["R"].astype(str).str.strip() + "R " +
+            df_show["レース名"].astype(str).str.strip()
+        )
 
-        for i, race in enumerate(race_names):
+        # レース名でグループ化
+        race_labels = df_show["表示レース名"].dropna().unique().tolist()
+        tabs = st.tabs(race_labels)
+
+        for i, label in enumerate(race_labels):
             with tabs[i]:
-                race_df = df_show[df_show["レース名"] == race].drop(columns=["レース名"]).reset_index(drop=True)
-                st.markdown(f"### 📄 {race}")
+                race_df = df_show[df_show["表示レース名"] == label].drop(
+                    columns=["レース名", "開催地", "R", "表示レース名"]
+                ).reset_index(drop=True)
+                st.markdown(f"### 📄 {label}")
                 st.dataframe(race_df)
 
                 csv = race_df.to_csv(index=False, encoding="utf-8-sig")
-                st.download_button("📥 CSVダウンロード", csv, file_name=f"{race}_出馬表.csv", key=race)
+                st.download_button("📥 CSVダウンロード", csv, file_name=f"{label}_出馬表.csv", key=label)
 
     else:
         st.error("❌ 出走予定馬CSVに '馬名' 列が見つかりませんでした。")
 
 else:
-    st.info("🔽 出走予定馬CSVと出馬表CSVの2つをアップロードしてください。")
+    st.info("🔽 出走予定馬CSVと出馬表CSVをアップロードしてください。")
