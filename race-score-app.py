@@ -5,10 +5,13 @@ import re
 st.set_page_config(page_title="横並び出馬表（過去5走付き）", layout="wide")
 st.title("🏇 横並び出馬表（過去5走＋スコア）")
 
-# GitHub上の固定パスから読み込み（アップロード不要）
-try:
-    entry_df = pd.read_csv("data/出馬表.csv", encoding="shift_jis")
-    level_df = pd.read_csv("data/レースレベルマスタ.csv", encoding="shift_jis", header=None)
+# CSVファイルのアップロード（手動）
+entry_file = st.file_uploader("🔼 出馬表CSVをアップロード", type="csv")
+level_file = st.file_uploader("🔼 レースレベルマスタCSVをアップロード", type="csv")
+
+if entry_file and level_file:
+    entry_df = pd.read_csv(entry_file, encoding="shift_jis")
+    level_df = pd.read_csv(level_file, encoding="shift_jis", header=None)
     level_df.columns = ["date", "race_id", "rating_raw"]
 
     # RX除去と整形
@@ -46,5 +49,5 @@ try:
 
     st.dataframe(filtered, use_container_width=True)
 
-except Exception as e:
-    st.error(f"読み込みエラー: {e}\nCSVファイルをGitHubの `data/` フォルダに配置してください。")
+else:
+    st.info("出馬表CSVとレースレベルマスタCSVをアップロードしてください。")
