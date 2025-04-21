@@ -16,6 +16,10 @@ if os.path.exists(MEMO_PATH):
 else:
     memo_data = {}
 
+# Detect current theme
+THEME = st.get_option("theme.base")
+TEXT_COLOR = "black" if THEME == "light" else "white"
+
 
 def level_to_colored_star(lv):
     try:
@@ -53,7 +57,7 @@ def format_past_row(row):
         jokey = row.get("騎手", "")
 
         html = f"""
-        <div style='line-height:1.2; font-size:11px; text-align:center; min-height:120px;'>
+        <div style='line-height:1.2; font-size:11px; text-align:center; min-height:120px; color:{TEXT_COLOR};'>
             <div style='font-size:15px; font-weight:bold;'>{chakujun}</div>
             <div>{kyori}m / {time} / {level_to_colored_star(level)}</div>
             <div style='font-size:10px;'>
@@ -78,7 +82,7 @@ def generate_past5_display(df_shutsuba, entry_names):
         df_horse = df_filtered[df_filtered["馬名"] == horse]
         rows = [format_past_row(row) for _, row in df_horse.head(5).iterrows()]
         while len(rows) < 5:
-            rows.append("<div style='min-height:120px;'>ー</div>")
+            rows.append(f"<div style='min-height:120px; color:{TEXT_COLOR};'>ー</div>")
         result.append([horse] + rows)
 
     df_past5 = pd.DataFrame(result, columns=["馬名"] + [f"{i+1}走前" for i in range(5)])
@@ -91,11 +95,11 @@ def display_race_table(df, race_label):
         with col1:
             st.selectbox("", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}", label_visibility="collapsed")
         with col2:
-            st.markdown(f"<div style='text-align:center; font-weight:bold;'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; font-weight:bold; color:{TEXT_COLOR};'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
         with col3:
             html_row = "<table style='width:100%; text-align:center'><tr>"
             for col in [f"{i}走前" for i in range(1, 6)]:
-                html = row[col] if pd.notnull(row[col]) else "<div style='min-height:120px;'>ー</div>"
+                html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:120px; color:{TEXT_COLOR};'>ー</div>"
                 html_row += f"<td style='vertical-align:top; min-width:150px'>{html}</td>"
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
