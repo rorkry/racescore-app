@@ -42,18 +42,19 @@ if entry_file and level_file:
             merged["まとめ"] = merged.apply(format_row, axis=1)
 
         grouped = merged.groupby("馬名").tail(5)
-        final = grouped.groupby("馬名").apply(lambda g: pd.Series(g["まとめ"].values[:5]))
 
-        if isinstance(final, pd.Series):
-            final = final.to_frame().T
+        # as_index=False で index にせずに groupby を維持
+        final = (
+            grouped.groupby("馬名", as_index=False)
+            .apply(lambda g: pd.Series(g["まとめ"].values[:5]))
+            .reset_index(drop=True)
+        )
 
         if isinstance(final, pd.DataFrame):
             final.dropna(how="all", axis=1, inplace=True)
 
-            if not final.empty and final.shape[1] > 0:
-                final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
-                final.reset_index(level=0, inplace=True)  # 馬名を列に復活
-                final.rename(columns={"index": "馬名"}, inplace=True)  # ← 馬名に正しくリネーム
+            if not final.empty and final.shape[1] > 1:
+                final.columns = ["馬名"] + [f"{i+1}走前" for i in range(final.shape[1] - 1)]
 
                 # 検索UI
                 selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
