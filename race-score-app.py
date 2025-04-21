@@ -4,7 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="出馬表フィルタ", layout="wide")
 st.title("🐎 出馬表フィルタ - 出走段階切り替え対応")
 
-# 📌 タブ形式で出走段階を切り替え
+# 📌 出走段階をタブで切り替え
 tab1, tab2 = st.tabs(["🟩 出走予定馬（想定）", "🟦 枠順確定後（確定出馬）"])
 
 # --------------------------
@@ -20,14 +20,17 @@ with tab1:
         try:
             df_entry = pd.read_csv(e_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.EmptyDataError):
-            st.error("❌ 出走予定馬CSVの読み込みに失敗しました。形式や中身を確認してください。")
+            st.error("❌ 出走予定馬CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
             st.stop()
 
         try:
             df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.EmptyDataError):
-            st.error("❌ 出馬表CSVの読み込みに失敗しました。")
-            st.stop()
+            try:
+                df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
+            except Exception:
+                st.error("❌ 出馬表CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
+                st.stop()
 
         entry_name_col = [col for col in df_entry.columns if "馬" in col and "名" in col]
         shutsuba_name_col = [col for col in df_shutsuba.columns if "馬" in col and "名" in col]
@@ -42,7 +45,7 @@ with tab1:
             csv = df_filtered.to_csv(index=False, encoding="utf-8-sig")
             st.download_button("📥 フィルタ出馬表CSVをダウンロード", csv, file_name="フィルタ出馬表.csv")
         else:
-            st.error("❌ '馬名' 列が見つかりませんでした。CSVの形式を確認してください。")
+            st.error("❌ '馬名' 列が見つかりませんでした。CSVの列構成を確認してください。")
 
 # --------------------------
 # 🟦 枠順確定後（確定出馬）
@@ -56,8 +59,11 @@ with tab2:
         try:
             df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.EmptyDataError):
-            st.error("❌ 出馬表CSVの読み込みに失敗しました。")
-            st.stop()
+            try:
+                df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
+            except Exception:
+                st.error("❌ 出馬表CSVの読み込みに失敗しました。")
+                st.stop()
 
         st.success("✅ 確定出馬表を表示中")
         st.dataframe(df_shutsuba)
