@@ -31,6 +31,8 @@ def level_to_colored_star(lv):
 
 def format_past_row(row):
     try:
+        st.write("★DEBUG:", row.get("馬名"), "| レース印３:", row.get("レース印３"))
+
         positions = []
         for col in ["2角", "3角", "4角"]:
             val = row.get(col)
@@ -58,7 +60,7 @@ def format_past_row(row):
         </div>
         """
     except Exception as e:
-        return f"<div style='min-height:120px;'>{e}</div>"
+        return f"<div style='min-height:120px;'>Error: {e}</div>"
 
 
 def generate_past5_display(df_shutsuba, entry_names):
@@ -110,22 +112,4 @@ shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
 
 if entry_file and shutsuba_file:
     df_entry = pd.read_csv(entry_file, encoding="utf-8")
-    df_shutsuba = pd.read_csv(shutsuba_file, encoding="shift_jis")
-
-    df_entry.columns = [c.strip() for c in df_entry.columns]
-    df_shutsuba.columns = [c.strip() for c in df_shutsuba.columns]
-
-    df_entry.drop(columns=["クラス名", "馬場状態", "距離", "頭数", "所在地"], errors="ignore", inplace=True)
-    df_entry["調教師"] = df_entry["所属"].astype(str) + "/" + df_entry["調教師"].astype(str)
-    df_entry.drop(columns=["所属"], inplace=True)
-
-    entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
-    df_past5 = generate_past5_display(df_shutsuba, entry_names)
-    df_merged = pd.merge(df_entry, df_past5, on="馬名", how="left")
-
-    df_merged["表示レース名"] = df_merged["開催地"].astype(str) + df_merged["R"].astype(str) + "R " + df_merged["レース名"].astype(str)
-
-    for race_name in df_merged["表示レース名"].unique():
-        with st.expander(f"🏁 {race_name}"):
-            race_df = df_merged[df_merged["表示レース名"] == race_name].reset_index(drop=True)
-            display_race_table(race_df, race_name)
+    df
