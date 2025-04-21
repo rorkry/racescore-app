@@ -6,7 +6,7 @@ import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
 
-# 印タブだけ白背景にするCSS
+# 印のselectboxを白背景にするCSS追加
 st.markdown("""
     <style>
     div[data-baseweb="select"] {
