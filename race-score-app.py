@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
 st.title(":clipboard: 出馬表フィルタ - 印・馬柄横並び表示 + メモ")
@@ -17,16 +18,20 @@ else:
 
 
 def level_to_colored_star(lv):
-    lv = str(lv).strip().upper()
-    star_map = {
-        "A": ("★★★★★", "red"),
-        "B": ("★★★★☆", "orange"),
-        "C": ("★★★☆☆", "gray"),
-        "D": ("★★☆☆☆", "blue"),
-        "E": ("★☆☆☆☆", "teal")
-    }
-    stars, color = star_map.get(lv, ("☆☆☆☆☆", "lightgray"))
-    return f"<span style='color:{color}; font-weight:bold'>{stars}</span>"
+    try:
+        lv = str(lv).strip()
+        lv = unicodedata.normalize('NFKC', lv).upper()
+        star_map = {
+            "A": ("★★★★★", "red"),
+            "B": ("★★★★☆", "orange"),
+            "C": ("★★★☆☆", "gray"),
+            "D": ("★★☆☆☆", "blue"),
+            "E": ("★☆☆☆☆", "teal")
+        }
+        stars, color = star_map.get(lv, ("☆☆☆☆☆", "lightgray"))
+        return f"<span style='color:{color}; font-weight:bold'>{stars}</span>"
+    except:
+        return "<span style='color:gray'>☆☆☆☆☆</span>"
 
 
 def format_past_row(row):
