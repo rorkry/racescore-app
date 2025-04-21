@@ -20,10 +20,6 @@ st.markdown("""
 st.title(":clipboard: 出馬表フィルタ - 印・馬柄横並び表示 + メモ")
 
 印リスト = ["", "◎", "◎", "○", "▲", "△", "⭐️", "×", "消"]
-印カラー = {
-    "◉": "red", "◎": "orange", "○": "blue", "▲": "green",
-    "△": "lime", "⭐︎": "gold", "×": "gray", "消": "lightgray", "": "black"
-}
 
 MEMO_PATH = "local_memo.json"
 
@@ -110,7 +106,7 @@ def display_race_table(df, race_label):
         col1, col2, col3 = st.columns([0.3, 2, 12])
         with col1:
             mark = st.selectbox("", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}", label_visibility="collapsed")
-            st.markdown(f"<div style='font-size:20px; text-align:center; color:{印カラー.get(mark, 'black')}'>{mark}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:20px; text-align:center;'>{mark}</div>", unsafe_allow_html=True)
         with col2:
             st.markdown(f"<div style='text-align:center; font-weight:bold; color:{TEXT_COLOR};'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
         with col3:
