@@ -43,18 +43,25 @@ if entry_file and level_file:
 
         grouped = merged.groupby("馬名").tail(5)
         final = grouped.groupby("馬名").apply(lambda g: pd.Series(g["まとめ"].values[:5]))
-        final.dropna(how="all", axis=1, inplace=True)
 
-        if not final.empty and final.shape[1] > 0:
-            final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
-            final.reset_index(inplace=True)
+        if isinstance(final, pd.Series):
+            final = final.to_frame().T
 
-            # 検索UI
-            selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
-            filtered = final[final["馬名"] == selected_horse]
-            st.dataframe(filtered, use_container_width=True)
+        if isinstance(final, pd.DataFrame):
+            final.dropna(how="all", axis=1, inplace=True)
+
+            if not final.empty and final.shape[1] > 0:
+                final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
+                final.reset_index(inplace=True)
+
+                # 検索UI
+                selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
+                filtered = final[final["馬名"] == selected_horse]
+                st.dataframe(filtered, use_container_width=True)
+            else:
+                st.warning("出走馬に5走以上のデータがありません。")
         else:
-            st.warning("出走馬に5走以上のデータがありません。")
+            st.warning("データ形式が不正です（DataFrame化に失敗）。")
     else:
         st.warning("アップロードされた出馬表データが空、または整形に失敗しました。")
 
