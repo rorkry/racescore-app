@@ -39,6 +39,7 @@ def format_past_row(row):
         """
     except:
         return "ー"
+        
         def generate_past5_display(df_shutsuba, entry_names):
     # 対象馬だけ抽出
     df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
@@ -56,6 +57,7 @@ def format_past_row(row):
     df_past5.columns = [f"{i+1}走前" for i in range(df_past5.shape[1])]
     df_past5.reset_index(inplace=True)
     return df_past5
+    
     with tab1:
     st.subheader("🔽 出走予定馬CSV & 出馬表CSVをアップロード")
 
