@@ -1,90 +1,50 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 import re
-from io import StringIO
-import numpy as np
 
-st.set_page_config(page_title="レース出馬表スコア表示", layout="wide")
-st.title("🏇 出馬表（レースレベルA/Bスコア付き）")
+st.set_page_config(page_title="横並び出馬表（過去5走付き）", layout="wide")
+st.title("🏇 横並び出馬表（過去5走＋スコア）")
 
-# ファイルアップロード
-def upload_csv(label):
-    uploaded_file = st.file_uploader(label, type=["csv"])
-    if uploaded_file:
-        try:
-            return pd.read_csv(uploaded_file, encoding="shift_jis")
-        except:
-            return pd.read_csv(uploaded_file)
-    return None
-
-entry_df = upload_csv("🔼 出馬表CSVをアップロード")
-level_df = upload_csv("🔼 レースレベルマスタCSVをアップロード")
-
-if entry_df is not None and level_df is not None:
-    # RX除去
-    entry_df["race_id_cleaned"] = entry_df["レースID(新/馬番無)"].astype(str).str.replace("RX", "")
-
-    # レベルマスタ整形
+# GitHub上の固定パスから読み込み（アップロード不要）
+try:
+    entry_df = pd.read_csv("data/出馬表.csv", encoding="shift_jis")
+    level_df = pd.read_csv("data/レースレベルマスタ.csv", encoding="shift_jis", header=None)
     level_df.columns = ["date", "race_id", "rating_raw"]
-    level_df["race_id_cleaned"] = level_df["race_id"].astype(str)
+
+    # RX除去と整形
+    entry_df["race_id"] = entry_df["レースID(新/馬番無)"].astype(str).str.replace("RX", "")
+    level_df["race_id"] = level_df["race_id"].astype(str)
+
     zenkaku_to_hankaku = str.maketrans("ＡＢＣＤＥ", "ABCDE")
-    def extract_last_zenkaku_letter(text):
-        matches = re.findall(r'[Ａ-Ｅ]', str(text))
+    def extract_level(text):
+        matches = re.findall(r"[Ａ-Ｅ]", str(text))
         if matches:
             return matches[-1].translate(zenkaku_to_hankaku)
         return None
-    level_df["rating_letter"] = level_df["rating_raw"].apply(extract_last_zenkaku_letter)
-    score_map = {'A': 5, 'B': 4, 'C': 3, 'D': 2, 'E': 1}
-    level_df["race_score_A"] = level_df["rating_letter"].map(score_map)
 
-    # 特徴量選定
-    cols_to_use = ["race_id_cleaned", "距離", "走破タイム", "基準タイム", "馬場状態", "上がり3F", "RPCI", "年齢", "馬体重", "斤量", "騎手", "調教師", "頭数", "人気"]
-    df_features = entry_df[[col for col in cols_to_use if col in entry_df.columns]].copy()
-    df_grouped = df_features.groupby("race_id_cleaned").agg("first").reset_index()
+    level_df["level"] = level_df["rating_raw"].apply(extract_level)
+    score_map = {'A': '★★★★★', 'B': '★★★★☆', 'C': '★★★☆☆', 'D': '★★☆☆☆', 'E': '★☆☆☆☆'}
+    level_df["level_star"] = level_df["level"].map(score_map)
 
-    # A方式スコア結合
-    df = pd.merge(df_grouped, level_df[["race_id_cleaned", "race_score_A"]], on="race_id_cleaned", how="left")
+    # 結合
+    merged = pd.merge(entry_df, level_df[["race_id", "level_star"]], on="race_id", how="left")
+    merged = merged.sort_values(by=["馬名", "race_id"], ascending=[True, True])
 
-    # ★表示
-    def score_to_stars(score):
-        if pd.isna(score): return ""
-        score = int(score)
-        return "★" * score + "☆" * (5 - score)
+    # 各馬の過去5走をまとめる
+    def format_row(row):
+        return f"{row['開催日']}\n{row['距離']} {row['馬場状態']}\n{row['走破タイム']} {row['level_star']}"
 
-    df["Aスコア"] = df["race_score_A"].apply(score_to_stars)
+    merged["まとめ"] = merged.apply(format_row, axis=1)
+    grouped = merged.groupby("馬名").tail(5)
+    final = grouped.groupby("馬名").apply(lambda g: pd.Series(g["まとめ"].values[:5]))
+    final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
+    final.reset_index(inplace=True)
 
-    # Bスコアゲージ表示
-    def render_gauge(score):
-        if pd.isna(score): return ""
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = score,
-            gauge = {
-                'axis': {'range': [0, 5]},
-                'bar': {'color': "blue"},
-                'steps': [
-                    {'range': [0, 2], 'color': "#eee"},
-                    {'range': [2, 4], 'color': "#ccd"},
-                    {'range': [4, 5], 'color': "#bbf"},
-                ]
-            },
-            number={'suffix': ""},
-        ))
-        fig.update_layout(height=150, margin=dict(l=10, r=10, t=30, b=10))
-        return fig
+    # 検索UI
+    selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
+    filtered = final[final["馬名"] == selected_horse]
 
-    # Bスコア（仮：ランダム生成。後でAI予測に置き換え可）
-    df["race_score_B"] = np.random.uniform(1, 5, len(df)).round(1)
+    st.dataframe(filtered, use_container_width=True)
 
-    st.markdown("### 出馬表（レースレベル）")
-    for idx, row in df.iterrows():
-        with st.container():
-            cols = st.columns([3, 1, 2])
-            cols[0].markdown(f"**距離:** {row['距離']} ／ **馬場:** {row['馬場状態']} ／ **基準タイム:** {row['基準タイム']}")
-            cols[1].markdown(f"A方式：{row['Aスコア']}")
-            with cols[2]:
-                st.plotly_chart(render_gauge(row['race_score_B']), use_container_width=True, key=f"gauge_{idx}")
-
-else:
-    st.info("CSVを2つアップロードしてください（出馬表 / レースレベルマスタ）")
+except Exception as e:
+    st.error(f"読み込みエラー: {e}\nCSVファイルをGitHubの `data/` フォルダに配置してください。")
