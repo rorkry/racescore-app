@@ -35,7 +35,7 @@ if entry_file and level_file:
 
     # 各馬の過去5走をまとめる
     def format_row(row):
-        return f"{row['開催日']}\n{row['距離']} {row['馬場状態']}\n{row['走破タイム']} {row['level_star']}"
+        return f"{row['日付(yyyy.mm.dd)']}\n{row['距離']} {row['馬場状態']}\n{row['走破タイム']} {row['level_star']}"
 
     merged["まとめ"] = merged.apply(format_row, axis=1)
     grouped = merged.groupby("馬名").tail(5)
