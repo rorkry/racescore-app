@@ -16,10 +16,12 @@ if entry_csv and shutsuba_csv:
     df_entry.columns = [col.strip() for col in df_entry.columns]
     df_shutsuba.columns = [col.strip() for col in df_shutsuba.columns]
 
-    # 馬名列推定（出馬表は E列、レベルは G列と想定）
-    entry_horse_col = "馬名"
-    shutsuba_horse_col = df_shutsuba.columns[4]  # E列
-    level_col = df_shutsuba.columns[6]  # G列
+    # 必要列を抽出
+    horse_col = df_shutsuba.columns[4]  # E列 馬名
+    date_col = df_shutsuba.columns[1]   # B列 日付
+    dist_col = df_shutsuba.columns[2]   # C列 距離
+    time_col = "走破タイム"
+    level_col = df_shutsuba.columns[6]  # G列 レースレベル
 
     # ★変換関数
     def level_to_star(lv):
@@ -31,37 +33,35 @@ if entry_csv and shutsuba_csv:
             "E": "★☆☆☆☆",
         }.get(str(lv).strip(), "ー")
 
-    if entry_horse_col in df_entry.columns:
-        entry_names = df_entry[entry_horse_col].astype(str).str.strip().unique().tolist()
-        df_filtered = df_shutsuba[df_shutsuba[shutsuba_horse_col].astype(str).str.strip().isin(entry_names)].copy()
+    # 出走予定馬をキーに絞り込み
+    if "馬名" in df_entry.columns:
+        entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
+        df_filtered = df_shutsuba[df_shutsuba[horse_col].astype(str).str.strip().isin(entry_names)].copy()
 
-        # 日付整形
-        if "日付" in df_filtered.columns:
-            df_filtered["日付"] = pd.to_datetime(df_filtered["日付"], errors="coerce")
-
-        # ★列追加
+        df_filtered[date_col] = pd.to_datetime(df_filtered[date_col], errors="coerce")
         df_filtered["★"] = df_filtered[level_col].map(level_to_star)
 
-        # 過去5走まとめ列作成
+        # 過去走まとめ列
         df_filtered["まとめ"] = (
-            df_filtered["日付"].dt.strftime("%m/%d") + " "
-            + df_filtered["距離"].astype(str) + "m "
-            + df_filtered["走破タイム"].astype(str) + " "
+            df_filtered[date_col].dt.strftime("%m/%d") + " "
+            + df_filtered[dist_col].astype(str) + "m "
+            + df_filtered[time_col].astype(str) + " "
             + df_filtered["★"]
         )
 
-        df_filtered = df_filtered.sort_values(["馬名", "日付"], ascending=[True, False])
-        grouped = df_filtered.groupby(shutsuba_horse_col)["まとめ"].apply(lambda x: x.tolist()[:5]).reset_index()
-        df_past5 = grouped.set_index(shutsuba_horse_col)["まとめ"].apply(pd.Series)
+        # 5走に絞って横展開
+        df_filtered = df_filtered.sort_values([horse_col, date_col], ascending=[True, False])
+        grouped = df_filtered.groupby(horse_col)["まとめ"].apply(lambda x: x.tolist()[:5]).reset_index()
+        df_past5 = grouped.set_index(horse_col)["まとめ"].apply(pd.Series)
         df_past5.columns = [f"{i+1}走前" for i in range(df_past5.shape[1])]
         df_past5.reset_index(inplace=True)
-        df_past5.rename(columns={shutsuba_horse_col: "馬名"}, inplace=True)
+        df_past5.rename(columns={horse_col: "馬名"}, inplace=True)
 
-        # 出走予定馬と結合（レース名を加える）
+        # 出走予定馬と結合
         df_show = pd.merge(df_entry, df_past5, on="馬名", how="left")
 
-        # レースごとに表示
-        race_names = df_show["レース名"].unique().tolist()
+        # レース別にタブ表示
+        race_names = df_show["レース名"].dropna().unique().tolist()
         tabs = st.tabs(race_names)
 
         for i, race in enumerate(race_names):
@@ -71,9 +71,9 @@ if entry_csv and shutsuba_csv:
                 st.dataframe(race_df)
 
                 csv = race_df.to_csv(index=False, encoding="utf-8-sig")
-                st.download_button("📥 この出馬表をCSVダウンロード", csv, file_name=f"{race}_出馬表.csv", key=race)
+                st.download_button("📥 CSVダウンロード", csv, file_name=f"{race}_出馬表.csv", key=race)
+
     else:
         st.error("❌ 出走予定馬CSVに '馬名' 列が見つかりませんでした。")
-
 else:
-    st.info("🔽 上記2つのCSVファイルをアップロードしてください。")
+    st.info("🔽 上記2ファイルをアップロードしてください。")
