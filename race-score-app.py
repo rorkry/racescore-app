@@ -37,8 +37,14 @@ with tab1:
                 st.error("❌ 出馬表CSVの読み込みに失敗しました。")
                 st.stop()
 
-        # 🟡 明示的に馬名列を指定
-        if "馬名" in df_entry.columns and "馬名" in df_shutsuba.columns:
+        # 列名をstripして統一
+        df_entry.columns = [col.strip() for col in df_entry.columns]
+        df_shutsuba.columns = [col.strip() for col in df_shutsuba.columns]
+
+        entry_has = "馬名" in df_entry.columns
+        shutsuba_has = "馬名" in df_shutsuba.columns
+
+        if entry_has and shutsuba_has:
             entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
             df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)]
 
