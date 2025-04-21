@@ -60,21 +60,21 @@ if entry_csv and shutsuba_csv:
         # 出走予定馬とマージ
         df_show = pd.merge(df_entry, df_past5, on="馬名", how="left")
 
-        # ✅ 表示レース名（開催地 + R + レース名）を追加
+        # ✅ 表示用レース名（開催地 + R + レース名）を作成
         df_show["表示レース名"] = (
             df_show["開催地"].astype(str).str.strip() +
             df_show["R"].astype(str).str.strip() + "R " +
             df_show["レース名"].astype(str).str.strip()
         )
 
-        # レース名でグループ化
+        # レース名でグループ化してタブ表示
         race_labels = df_show["表示レース名"].dropna().unique().tolist()
         tabs = st.tabs(race_labels)
 
         for i, label in enumerate(race_labels):
             with tabs[i]:
                 race_df = df_show[df_show["表示レース名"] == label].drop(
-                    columns=["レース名", "開催地", "R", "表示レース名"]
+                    columns=["表示レース名", "開催地", "R", "レース名"]
                 ).reset_index(drop=True)
                 st.markdown(f"### 📄 {label}")
                 st.dataframe(race_df)
@@ -86,4 +86,4 @@ if entry_csv and shutsuba_csv:
         st.error("❌ 出走予定馬CSVに '馬名' 列が見つかりませんでした。")
 
 else:
-    st.info("🔽 出走予定馬CSVと出馬表CSVをアップロードしてください。")
+    st.info("🔽 出走予定馬CSVと出馬表CSVの2つをアップロードしてください。")
