@@ -36,8 +36,6 @@ def level_to_colored_star(lv):
 
 def format_past_row(row):
     try:
-        st.write("★DEBUG:", row.get("馬名"), "| レース印３:", row.get("レース印３"))
-
         positions = []
         for col in ["2角", "3角", "4角"]:
             val = row.get(col)
@@ -54,7 +52,7 @@ def format_past_row(row):
         kinryo = row.get("斤量", "")
         jokey = row.get("騎手", "")
 
-        return f"""
+        html = f"""
         <div style='line-height:1.2; font-size:11px; text-align:center; min-height:120px;'>
             <div style='font-size:15px; font-weight:bold;'>{chakujun}</div>
             <div>{kyori}m / {time} / {level_to_colored_star(level)}</div>
@@ -64,6 +62,7 @@ def format_past_row(row):
             </div>
         </div>
         """
+        return html
     except Exception as e:
         return f"<div style='min-height:120px;'>Error: {e}</div>"
 
@@ -90,7 +89,7 @@ def display_race_table(df, race_label):
     for idx, row in df.iterrows():
         col1, col2, col3 = st.columns([0.3, 2, 12])
         with col1:
-            mark = st.selectbox("", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}", label_visibility="collapsed")
+            st.selectbox("", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}", label_visibility="collapsed")
         with col2:
             st.markdown(f"<div style='text-align:center; font-weight:bold;'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
         with col3:
@@ -118,8 +117,6 @@ shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
 if entry_file and shutsuba_file:
     df_entry = pd.read_csv(entry_file, encoding="utf-8")
     df_shutsuba = pd.read_csv(shutsuba_file, encoding="shift_jis")
-
-    st.write("📋 出馬表の列名:", df_shutsuba.columns.tolist())
 
     df_entry.columns = [c.strip() for c in df_entry.columns]
     df_shutsuba.columns = [c.strip() for c in df_shutsuba.columns]
