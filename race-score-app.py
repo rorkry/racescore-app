@@ -18,14 +18,16 @@ with tab1:
 
     if e_uploaded and s_uploaded:
         try:
-            df_entry = pd.read_csv(e_uploaded, encoding="utf-8")
-        except UnicodeDecodeError:
-            df_entry = pd.read_csv(e_uploaded, encoding="shift_jis")
+            df_entry = pd.read_csv(e_uploaded, encoding="utf-8-sig")
+        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+            st.error("❌ 出走予定馬CSVの読み込みに失敗しました。形式や中身を確認してください。")
+            st.stop()
 
         try:
-            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8")
-        except UnicodeDecodeError:
-            df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
+        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+            st.error("❌ 出馬表CSVの読み込みに失敗しました。")
+            st.stop()
 
         entry_name_col = [col for col in df_entry.columns if "馬" in col and "名" in col]
         shutsuba_name_col = [col for col in df_shutsuba.columns if "馬" in col and "名" in col]
@@ -40,7 +42,7 @@ with tab1:
             csv = df_filtered.to_csv(index=False, encoding="utf-8-sig")
             st.download_button("📥 フィルタ出馬表CSVをダウンロード", csv, file_name="フィルタ出馬表.csv")
         else:
-            st.error("❌ '馬名' 列が見つかりませんでした")
+            st.error("❌ '馬名' 列が見つかりませんでした。CSVの形式を確認してください。")
 
 # --------------------------
 # 🟦 枠順確定後（確定出馬）
@@ -52,9 +54,10 @@ with tab2:
 
     if s_uploaded:
         try:
-            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8")
-        except UnicodeDecodeError:
-            df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
+        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+            st.error("❌ 出馬表CSVの読み込みに失敗しました。")
+            st.stop()
 
         st.success("✅ 確定出馬表を表示中")
         st.dataframe(df_shutsuba)
