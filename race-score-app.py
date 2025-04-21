@@ -5,6 +5,18 @@ import os
 import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
+
+# 印タブだけ白背景にするCSS
+st.markdown("""
+    <style>
+    div[data-baseweb="select"] {
+        background-color: white !important;
+        color: black !important;
+        border-radius: 5px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title(":clipboard: 出馬表フィルタ - 印・馬柄横並び表示 + メモ")
 
 印リスト = ["", "◎", "◎", "○", "▲", "△", "⭐️", "×", "消"]
