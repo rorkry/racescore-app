@@ -52,9 +52,10 @@ if entry_file and level_file:
 
             if not final.empty and final.shape[1] > 0:
                 final.columns = [f"{i+1}走前" for i in range(final.shape[1])]
-                final.reset_index(level=0, inplace=True)  # ← 馬名を列に復活
+                final.reset_index(level=0, inplace=True)  # 馬名を列に復活
+                final.rename(columns={"index": "馬名"}, inplace=True)  # ← 馬名に正しくリネーム
 
-                # 検索UI（馬名列が存在する状態）
+                # 検索UI
                 selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
                 filtered = final[final["馬名"] == selected_horse]
                 st.dataframe(filtered, use_container_width=True)
