@@ -74,17 +74,17 @@ if entry_df is not None and level_df is not None:
         fig.update_layout(height=150, margin=dict(l=10, r=10, t=30, b=10))
         return fig
 
-    # Bスコア（仮データ／AIモデルで置換可）
+    # Bスコア（仮：ランダム生成。後でAI予測に置き換え可）
     df["race_score_B"] = np.random.uniform(1, 5, len(df)).round(1)
 
     st.markdown("### 出馬表（レースレベル）")
     for idx, row in df.iterrows():
-        with st.container():  # ← ★エラー防止用にcontainer追加！
+        with st.container():
             cols = st.columns([3, 1, 2])
             cols[0].markdown(f"**距離:** {row['距離']} ／ **馬場:** {row['馬場状態']} ／ **基準タイム:** {row['基準タイム']}")
             cols[1].markdown(f"A方式：{row['Aスコア']}")
             with cols[2]:
-                st.plotly_chart(render_gauge(row['race_score_B']), use_container_width=True)
+                st.plotly_chart(render_gauge(row['race_score_B']), use_container_width=True, key=f"gauge_{idx}")
 
 else:
     st.info("CSVを2つアップロードしてください（出馬表 / レースレベルマスタ）")
