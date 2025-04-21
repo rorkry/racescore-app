@@ -97,4 +97,3 @@ for race_name in df_merged["表示レース名"].unique():
         race_df = df_merged[df_merged["表示レース名"] == race_name].reset_index(drop=True)
         display_race_table(race_df, race_name)
 
-
