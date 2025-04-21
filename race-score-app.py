@@ -17,21 +17,27 @@ with tab1:
     s_uploaded = st.file_uploader("出馬表CSV（全馬）", type="csv", key="shutsuba")
 
     if e_uploaded and s_uploaded:
+        # 出走予定馬CSV 読み込み（utf-8-sig or shift_jis）
         try:
             df_entry = pd.read_csv(e_uploaded, encoding="utf-8-sig")
         except (UnicodeDecodeError, pd.errors.EmptyDataError):
-            st.error("❌ 出走予定馬CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
-            st.stop()
+            try:
+                df_entry = pd.read_csv(e_uploaded, encoding="shift_jis")
+            except Exception:
+                st.error("❌ 出走予定馬CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
+                st.stop()
 
+        # 出馬表CSV 読み込み（utf-8-sig or shift_jis）
         try:
             df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
-        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+        except (UnicodeDecodeError, pd.errors.ParserError):
             try:
                 df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
             except Exception:
                 st.error("❌ 出馬表CSVの読み込みに失敗しました。ファイルの形式を確認してください。")
                 st.stop()
 
+        # 馬名列を自動検出
         entry_name_col = [col for col in df_entry.columns if "馬" in col and "名" in col]
         shutsuba_name_col = [col for col in df_shutsuba.columns if "馬" in col and "名" in col]
 
@@ -58,7 +64,7 @@ with tab2:
     if s_uploaded:
         try:
             df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8-sig")
-        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+        except (UnicodeDecodeError, pd.errors.ParserError):
             try:
                 df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
             except Exception:
