@@ -6,6 +6,7 @@ st.title("📋 出馬表フィルタ - 出走段階切替 + 過去走2段表示"
 
 tab1, tab2 = st.tabs(["🟩 出走予定馬（想定）", "🟦 枠順確定後（確定出馬）"])
 
+# ★を色付きHTMLで返す
 def level_to_colored_star(lv):
     lv = str(lv).strip().replace("Ａ", "A").replace("Ｂ", "B").replace("Ｃ", "C").replace("Ｄ", "D").replace("Ｅ", "E")
     stars = {
@@ -25,6 +26,7 @@ def level_to_colored_star(lv):
     color = color_map.get(lv, "black")
     return f"<span style='color:{color}; font-weight:bold'>{stars}</span>"
 
+# 過去レース1走分のHTML表示
 def format_past_row(row):
     try:
         return f"""
@@ -39,17 +41,16 @@ def format_past_row(row):
         """
     except:
         return "ー"
-        
-        def generate_past5_display(df_shutsuba, entry_names):
-    # 対象馬だけ抽出
+
+# 馬ごとに過去5走のHTML整形
+def generate_past5_display(df_shutsuba, entry_names):
     df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
     df_filtered["日付"] = pd.to_datetime(df_filtered["日付(yyyy.mm.dd)"], errors="coerce")
     df_filtered = df_filtered.sort_values(["馬名", "日付"], ascending=[True, False])
 
-    # 表示列加工
-    past_cols = ["馬名", "日付", "距離", "走破タイム", "レース印３", "着順",
-                 "上り3F", "2角", "3角", "4角", "馬体重", "斤量", "騎手"]
-    df_filtered = df_filtered[past_cols].copy()
+    cols_needed = ["馬名", "日付", "距離", "走破タイム", "レース印３", "着順",
+                   "上り3F", "2角", "3角", "4角", "馬体重", "斤量", "騎手"]
+    df_filtered = df_filtered[cols_needed].copy()
     df_filtered["表示"] = df_filtered.apply(format_past_row, axis=1)
 
     grouped = df_filtered.groupby("馬名")["表示"].apply(lambda x: x.tolist()[:5]).reset_index()
@@ -57,8 +58,9 @@ def format_past_row(row):
     df_past5.columns = [f"{i+1}走前" for i in range(df_past5.shape[1])]
     df_past5.reset_index(inplace=True)
     return df_past5
-    
-    with tab1:
+
+# 出走予定馬ベース
+with tab1:
     st.subheader("🔽 出走予定馬CSV & 出馬表CSVをアップロード")
 
     e_uploaded = st.file_uploader("出走予定馬CSV", type="csv", key="entry")
@@ -74,7 +76,6 @@ def format_past_row(row):
         df_past5 = generate_past5_display(df_shutsuba, entry_names)
         df_merged = pd.merge(df_entry, df_past5, on="馬名", how="left")
 
-        # 表示用レース名生成
         df_merged["表示レース名"] = (
             df_merged["開催地"].astype(str).str.strip() +
             df_merged["R"].astype(str).str.strip() + "R " +
@@ -91,14 +92,10 @@ def format_past_row(row):
                 ).reset_index(drop=True)
 
                 st.markdown(f"### 🏁 {race}")
-                st.write("")
+                st.write(race_df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # HTML表示
-                st.write(
-                    race_df.to_html(escape=False, index=False),
-                    unsafe_allow_html=True
-                )
-                with tab2:
+# 確定出馬表（データ確認用）
+with tab2:
     st.subheader("✅ 確定出馬表CSVをアップロード")
 
     s_uploaded = st.file_uploader("確定出馬表CSV", type="csv", key="final")
