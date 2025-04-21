@@ -94,7 +94,7 @@ def display_race_table(df, race_label):
             st.markdown(f"<div style='background-color:{bgcolor}; text-align:center; padding:2px'>{mark}</div>", unsafe_allow_html=True)
 
         with col2:
-            st.markdown(f"<div style='background-color:{bgcolor}; text-align:center; font-weight:bold;'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:{bgcolor}; color:black; text-align:center; font-weight:bold;'>{row['馬名']}<br><span style='font-size:11px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True)
 
         with col3:
             html_row = "<table style='width:100%; text-align:center'><tr>"
