@@ -1,67 +1,64 @@
 import streamlit as st
 import pandas as pd
-import re
 
-st.set_page_config(page_title="横並び出馬表（過去5走付き）", layout="wide")
-st.title("🏇 横並び出馬表（過去5走＋スコア）")
+st.title("🐎 出馬表フィルタ - 出走段階切り替え対応")
 
-# CSVファイルのアップロード（手動）
-entry_file = st.file_uploader("🔼 出馬表CSVをアップロード", type="csv")
-level_file = st.file_uploader("🔼 レースレベルマスタCSVをアップロード", type="csv")
+# 📌 表示モード選択
+mode = st.radio("📊 表示モードを選択", ["出走予定馬（想定）", "枠順確定後（確定出馬）"])
 
-if entry_file and level_file:
-    entry_df = pd.read_csv(entry_file, encoding="shift_jis")
-    level_df = pd.read_csv(level_file, encoding="shift_jis", header=None)
-    level_df.columns = ["date", "race_id", "rating_raw"]
+# ========================================
+# 出走予定馬ベースの出馬表表示
+# ========================================
+if mode == "出走予定馬（想定）":
+    st.subheader("🔽 出走予定馬CSV & 出馬表CSVをアップロード")
 
-    # RX除去と整形
-    entry_df["race_id"] = entry_df["レースID(新/馬番無)"].astype(str).str.replace("RX", "")
-    level_df["race_id"] = level_df["race_id"].astype(str)
+    e_uploaded = st.file_uploader("出走予定馬CSV", type="csv", key="entry")
+    s_uploaded = st.file_uploader("出馬表CSV（全馬）", type="csv", key="shutsuba")
 
-    zenkaku_to_hankaku = str.maketrans("ＡＢＣＤＥ", "ABCDE")
-    def extract_level(text):
-        matches = re.findall(r"[Ａ-Ｅ]", str(text))
-        if matches:
-            return matches[-1].translate(zenkaku_to_hankaku)
-        return None
+    if e_uploaded and s_uploaded:
+        try:
+            df_entry = pd.read_csv(e_uploaded, encoding="utf-8")
+        except UnicodeDecodeError:
+            df_entry = pd.read_csv(e_uploaded, encoding="shift_jis")
 
-    level_df["level"] = level_df["rating_raw"].apply(extract_level)
-    score_map = {'A': '★★★★★', 'B': '★★★★☆', 'C': '★★★☆☆', 'D': '★★☆☆☆', 'E': '★☆☆☆☆'}
-    level_df["level_star"] = level_df["level"].map(score_map)
+        try:
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8")
+        except UnicodeDecodeError:
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
 
-    # 結合
-    merged = pd.merge(entry_df, level_df[["race_id", "level_star"]], on="race_id", how="left")
-    merged = merged.sort_values(by=["馬名", "race_id"], ascending=[True, True])
+        # 馬名列の自動検出
+        entry_name_col = [col for col in df_entry.columns if "馬" in col and "名" in col]
+        shutsuba_name_col = [col for col in df_shutsuba.columns if "馬" in col and "名" in col]
 
-    # 各馬の過去5走をまとめる
-    def format_row(row):
-        return f"{row['日付(yyyy.mm.dd)']}\n{row['距離']} {row['馬場状態']}\n{row['走破タイム']} {row['level_star']}"
+        if entry_name_col and shutsuba_name_col:
+            entry_names = df_entry[entry_name_col[0]].astype(str).str.strip().unique().tolist()
+            df_filtered = df_shutsuba[df_shutsuba[shutsuba_name_col[0]].astype(str).str.strip().isin(entry_names)]
 
-    if not merged.empty:
-        if "まとめ" not in merged.columns:
-            merged["まとめ"] = merged.apply(format_row, axis=1)
+            st.success(f"✅ {len(df_filtered)}頭分のフィルタ済出馬表")
+            st.dataframe(df_filtered)
 
-        # 高速化：辞書でグループ化
-        horse_groups = dict(tuple(merged.groupby("馬名")))
-        rows = []
-
-        for name, runs in horse_groups.items():
-            summary = runs.sort_values("race_id")["まとめ"].tail(5).tolist()
-            row = [name] + summary + ["" for _ in range(5 - len(summary))]
-            rows.append(row)
-
-        columns = ["馬名"] + [f"{i+1}走前" for i in range(5)]
-        final = pd.DataFrame(rows, columns=columns)
-
-        if not final.empty:
-            # 検索UI
-            selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
-            filtered = final[final["馬名"] == selected_horse]
-            st.dataframe(filtered, use_container_width=True)
+            # ダウンロードボタン
+            csv = df_filtered.to_csv(index=False, encoding="utf-8-sig")
+            st.download_button("📥 フィルタ出馬表CSVをダウンロード", csv, file_name="フィルタ出馬表.csv")
         else:
-            st.warning("出走馬に5走以上のデータがありません。")
-    else:
-        st.warning("アップロードされた出馬表データが空、または整形に失敗しました。")
+            st.error("❌ '馬名' 列が見つかりませんでした")
 
-else:
-    st.info("出馬表CSVとレースレベルマスタCSVをアップロードしてください。")
+# ========================================
+# 枠順確定後の出馬表を表示
+# ========================================
+elif mode == "枠順確定後（確定出馬）":
+    st.subheader("✅ 確定済み出馬表CSVをアップロード")
+
+    s_uploaded = st.file_uploader("確定出馬表CSV", type="csv", key="final")
+
+    if s_uploaded:
+        try:
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="utf-8")
+        except UnicodeDecodeError:
+            df_shutsuba = pd.read_csv(s_uploaded, encoding="shift_jis")
+
+        st.success("✅ 確定出馬表を表示中")
+        st.dataframe(df_shutsuba)
+
+        csv = df_shutsuba.to_csv(index=False, encoding="utf-8-sig")
+        st.download_button("📥 出馬表CSVをダウンロード", csv, file_name="確定出馬表.csv")
