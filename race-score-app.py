@@ -41,29 +41,25 @@ if entry_file and level_file:
         if "まとめ" not in merged.columns:
             merged["まとめ"] = merged.apply(format_row, axis=1)
 
-        grouped = merged.groupby("馬名").tail(5)
+        horses = merged["馬名"].unique()
+        rows = []
 
-        # as_index=False で index にせずに groupby を維持
-        final = (
-            grouped.groupby("馬名", as_index=False)
-            .apply(lambda g: pd.Series(g["まとめ"].values[:5]))
-            .reset_index(drop=True)
-        )
+        for name in horses:
+            runs = merged[merged["馬名"] == name].sort_values("race_id").tail(5)
+            summary = runs["まとめ"].tolist()
+            row = [name] + summary + ["" for _ in range(5 - len(summary))]
+            rows.append(row)
 
-        if isinstance(final, pd.DataFrame):
-            final.dropna(how="all", axis=1, inplace=True)
+        columns = ["馬名"] + [f"{i+1}走前" for i in range(5)]
+        final = pd.DataFrame(rows, columns=columns)
 
-            if not final.empty and final.shape[1] > 1:
-                final.columns = ["馬名"] + [f"{i+1}走前" for i in range(final.shape[1] - 1)]
-
-                # 検索UI
-                selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
-                filtered = final[final["馬名"] == selected_horse]
-                st.dataframe(filtered, use_container_width=True)
-            else:
-                st.warning("出走馬に5走以上のデータがありません。")
+        if not final.empty:
+            # 検索UI
+            selected_horse = st.selectbox("🐴 馬名で検索", final["馬名"].unique())
+            filtered = final[final["馬名"] == selected_horse]
+            st.dataframe(filtered, use_container_width=True)
         else:
-            st.warning("データ形式が不正です（DataFrame化に失敗）。")
+            st.warning("出走馬に5走以上のデータがありません。")
     else:
         st.warning("アップロードされた出馬表データが空、または整形に失敗しました。")
 
