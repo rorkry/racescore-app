@@ -6,13 +6,21 @@ import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
 
-# 印のselectboxを白背景にするCSS追加
+# 印のselectboxと選択肢ドロップダウンを白背景・黒文字にするCSS追加
 st.markdown("""
     <style>
     div[data-baseweb="select"] {
         background-color: white !important;
         color: black !important;
         border-radius: 5px;
+    }
+    div[data-baseweb="popover"] {
+        background-color: white !important;
+        color: black !important;
+    }
+    div[data-baseweb="menu"] > div {
+        background-color: white !important;
+        color: black !important;
     }
     </style>
 """, unsafe_allow_html=True)
