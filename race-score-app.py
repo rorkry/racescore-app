@@ -25,18 +25,10 @@ def level_to_colored_star(lv):
         "D": "★★☆☆☆",
         "E": "★☆☆☆☆",
     }.get(lv, "ー")
-    color_map = {
-        "A": "red",
-        "B": "orange",
-        "C": "gray",
-        "D": "blue",
-        "E": "lightblue",
-    }
-    color = color_map.get(lv, "black")
-    return f"<span style='color:{color}; font-weight:bold'>{stars}</span>"
+    return f"<span style='color:black; font-weight:bold; background-color:#f5f5f5; padding:2px 5px;'>{stars}</span>"
 
 
-def format_past_row(row, fastest_time):
+def format_past_row(row):
     try:
         positions = []
         for col in ["2角", "3角", "4角"]:
@@ -46,11 +38,8 @@ def format_past_row(row, fastest_time):
         pos_text = "→".join(positions)
 
         agari = row["上り3F"]
-        if pd.notnull(agari) and agari == fastest_time:
-            agari = f"<span style='color:red; font-weight:bold'>{agari}</span>"
-
         return f"""
-        <div style='line-height:1.2; font-size:11px; text-align:center'>
+        <div style='line-height:1.2; font-size:11px; text-align:center; background-color:#f5f5f5; padding:4px;'>
             <div style='font-size:15px; font-weight:bold;'>{row['着順']}</div>
             <div>{row['距離']}m / {row['走破タイム']} / {level_to_colored_star(row['レース印３'])}</div>
             <div style='font-size:10px;'>
@@ -71,11 +60,7 @@ def generate_past5_display(df_shutsuba, entry_names):
     result = []
     for horse in df_filtered["馬名"].unique():
         df_horse = df_filtered[df_filtered["馬名"] == horse]
-        rows = []
-        for _, row in df_horse.head(5).iterrows():
-            race_id = row["レースID(新/馬番無)"]
-            min_time = df_filtered[df_filtered["レースID(新/馬番無)"] == race_id]["上り3F"].min()
-            rows.append(format_past_row(row, min_time))
+        rows = [format_past_row(row) for _, row in df_horse.head(5).iterrows()]
         while len(rows) < 5:
             rows.append("ー")
         result.append([horse] + rows)
@@ -86,10 +71,10 @@ def generate_past5_display(df_shutsuba, entry_names):
 
 def display_race_table(df, race_label):
     for idx, row in df.iterrows():
-        mark = st.selectbox("印", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}")
+        mark = st.selectbox("", 印リスト, key=f"mark_{race_label}_{row['馬名']}_{idx}", label_visibility="collapsed")
         bgcolor = "#ffcccc" if mark == "◎" else "#ffe5b4" if mark == "◎" else "white"
 
-        col1, col2, col3 = st.columns([1, 2, 12])
+        col1, col2, col3 = st.columns([0.5, 2, 12])
         with col1:
             st.markdown(f"<div style='background-color:{bgcolor}; text-align:center; padding:2px'>{mark}</div>", unsafe_allow_html=True)
 
@@ -104,9 +89,10 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-        memo = memo_data.get(row["馬名"], "")
-        new_memo = st.text_area(f"✍ {row['馬名']} へのメモ", memo, key=f"memo_{race_label}_{row['馬名']}_{idx}")
-        memo_data[row["馬名"]] = new_memo
+        with st.expander(f"📓 {row['馬名']} へのメモ", expanded=False):
+            memo = memo_data.get(row["馬名"], "")
+            new_memo = st.text_area("", memo, key=f"memo_{race_label}_{row['馬名']}_{idx}")
+            memo_data[row["馬名"]] = new_memo
 
     if st.button("📂 メモをローカルjsonに保存", key=f"save_memo_{race_label}"):
         with open(MEMO_PATH, "w", encoding="utf-8") as f:
