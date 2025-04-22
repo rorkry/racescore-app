@@ -19,6 +19,21 @@ st.title(":clipboard: 出馬表フィルタ - 印・馬柄横並び表示 + メ�
 MEMO_PATH = "local_memo.json"
 
 if os.path.exists(MEMO_PATH): with open(MEMO_PATH, "r", encoding="utf-8") as f: memo_data = json.load(f) else: memo_data = {}
+import streamlit as st import pandas as pd import json import os import unicodedata
+
+st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
+
+CSS: レイアウトを細く整えて格子状に表示
+
+st.markdown(""" <style> div[data-baseweb="select"] { background-color: white !important; color: black !important; border-radius: 3px; padding: 0 !important; height: 30px; } td { padding-top: 1px !important; padding-bottom: 1px !important; border: 1px solid #ccc; } table { border-collapse: collapse; } </style> """, unsafe_allow_html=True)
+
+st.title(":clipboard: 出馬表フィルタ - 印・馬柄横並び表示")
+
+印リスト = ["", "◎", "◎", "○", "▲", "△", "⭐️", "×", "消"]
+
+MEMO_PATH = "local_memo.json"
+
+if os.path.exists(MEMO_PATH): with open(MEMO_PATH, "r", encoding="utf-8") as f: memo_data = json.load(f) else: memo_data = {}
 
 THEME = st.get_option("theme.base") TEXT_COLOR = "black" if THEME == "light" else "white"
 
@@ -49,7 +64,15 @@ agari = row.get("上り3F", "")
 except Exception as e:
     return f"<div style='min-height:80px;'>Error: {e}</div>"
 
-def display_race_table(df, race_label): for idx, row in df.iterrows(): col1, col2, col3 = st.columns([0.3, 2, 12]) with col1: mark = st.selectbox("", 印リスト, key=f"mark_{race_label}{row['馬名']}{idx}", label_visibility="collapsed") st.markdown(f"<div style='font-size:16px; text-align:center;'>{mark}</div>", unsafe_allow_html=True) with col2: st.markdown(f"<div style='text-align:center; font-weight:bold; color:{TEXT_COLOR};'>{row['馬名']}<br><span style='font-size:10px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True) if st.toggle("📝", key=f"toggle_{race_label}{row['馬名']}{idx}"): memo = memo_data.get(row["馬名"], "") new_memo = st.text_area("", memo, key=f"memo_{race_label}{row['馬名']}{idx}") memo_data[row["馬名"]] = new_memo with col3: html_row = "<table style='width:100%; text-align:center; border-spacing:0'><tr>" for col in [f"{i}走前" for i in range(1, 6)]: html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>" html_row += f"<td style='vertical-align:top; min-width:140px'>{html}</td>" html_row += "</tr></table>" st.markdown(html_row, unsafe_allow_html=True)
+def display_race_table(df, race_label): for idx, row in df.iterrows(): col1, col2, col3 = st.columns([0.3, 2, 12]) with col1: mark = st.selectbox("", 印リスト, key=f"mark_{race_label}{row['馬名']}{idx}", label_visibility="collapsed") st.markdown(f"<div style='font-size:16px; text-align:center;'>{mark}</div>", unsafe_allow_html=True) with col2: st.markdown(f"<div style='text-align:center; font-weight:bold; color:{TEXT_COLOR};'>{row['馬名']}<br><span style='font-size:10px'>{row['性別']}{row['年齢']}・{row['斤量']}kg</span></div>", unsafe_allow_html=True) # メモ機能は一時的に無効化 # if st.toggle("📝", key=f"toggle_{race_label}{row['馬名']}{idx}"): #     memo = memo_data.get(row["馬名"], "") #     new_memo = st.text_area("", memo, key=f"memo_{race_label}{row['馬名']}{idx}") #     memo_data[row["馬名"]] = new_memo with col3: html_row = "<table style='width:100%; text-align:center; border-spacing:0'><tr>" for col in [f"{i}走前" for i in range(1, 6)]: html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>" html_row += f"<td style='vertical-align:top; min-width:140px'>{html}</td>" html_row += "</tr></table>" st.markdown(html_row, unsafe_allow_html=True)
+
+# 保存機能も無効化
+# if st.button("📂 メモをローカルjsonに保存", key=f"save_memo_{race_label}"):
+#     with open(MEMO_PATH, "w", encoding="utf-8") as f:
+#         json.dump(memo_data, f, ensure_ascii=False, indent=2)
+#     st.success("メモをlocal_memo.jsonに保存しました")
+
+・{row['斤量']}kg</span></div>", unsafe_allow_html=True) if st.toggle("📝", key=f"toggle_{race_label}{row['馬名']}{idx}"): memo = memo_data.get(row["馬名"], "") new_memo = st.text_area("", memo, key=f"memo_{race_label}{row['馬名']}{idx}") memo_data[row["馬名"]] = new_memo with col3: html_row = "<table style='width:100%; text-align:center; border-spacing:0'><tr>" for col in [f"{i}走前" for i in range(1, 6)]: html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>" html_row += f"<td style='vertical-align:top; min-width:140px'>{html}</td>" html_row += "</tr></table>" st.markdown(html_row, unsafe_allow_html=True)
 
 if st.button("📂 メモをローカルjsonに保存", key=f"save_memo_{race_label}"):
     with open(MEMO_PATH, "w", encoding="utf-8") as f:
