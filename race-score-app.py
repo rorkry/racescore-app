@@ -11,6 +11,9 @@ st.markdown("""
         padding-top: 1px !important;
         padding-bottom: 1px !important;
         border: 1px solid #ccc;
+        vertical-align: top;
+        min-width: 140px;
+        text-align: center;
     }
     table {
         border-collapse: collapse;
@@ -21,6 +24,7 @@ st.markdown("""
 st.title(":clipboard: 出馬表フィルタ - シンプル表示")
 
 TEXT_COLOR = "black" if st.get_option("theme.base") == "light" else "white"
+
 
 def level_to_colored_star(lv):
     lv = str(lv).strip()
@@ -34,6 +38,7 @@ def level_to_colored_star(lv):
     }
     stars, color = star_map.get(lv, ("☆☆☆☆☆", "lightgray"))
     return f"<span style='color:{color}; font-weight:bold'>{stars}</span>"
+
 
 def format_past_row(row):
     positions = []
@@ -51,16 +56,17 @@ def format_past_row(row):
     kinryo = row.get("斤量", "")
     jokey = row.get("騎手", "")
     date = row.get("日付", "")
-    date_str = date.strftime("%Y/%m/%d") if pd.notnull(date) else ""
 
     html = f"""
-    <div style='line-height:1.1; font-size:10px; text-align:center; color:{TEXT_COLOR}; min-height:100px'>
+    <div style='line-height:1.1; font-size:10px; text-align:center; color:{TEXT_COLOR}; min-height:120px;'>
         <div style='font-size:13px; font-weight:bold;'>{chakujun}</div>
-        <div>{date_str}<br>{kyori}m / {time} / {level_to_colored_star(level)}</div>
+        <div style='font-size:10px;'>{date}</div>
+        <div>{kyori}m / {time} / {level_to_colored_star(level)}</div>
         <div>{agari} / {pos_text}<br>{weight}kg / {kinryo} / {jokey}</div>
     </div>
     """
     return html
+
 
 def display_race_table(df, race_label):
     for idx, row in df.iterrows():
@@ -75,8 +81,8 @@ def display_race_table(df, race_label):
         with col2:
             html_row = "<table style='width:100%; text-align:center; border-spacing:0'><tr>"
             for col in [f"{i}走前" for i in range(1, 6)]:
-                html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>"
-                html_row += f"<td style='vertical-align:top; min-width:140px'>{html}</td>"
+                html = row[col] if pd.notnull(row[col]) else f"<div style='min-height:120px; color:{TEXT_COLOR};'>ー</div>"
+                html_row += f"<td>{html}</td>"
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
@@ -99,9 +105,8 @@ if entry_file and shutsuba_file:
     df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
 
     if "日付(yyyy.mm.dd)" in df_filtered.columns:
-        df_filtered["日付"] = pd.to_datetime(
-            df_filtered["日付(yyyy.mm.dd)"].astype(str), format="%Y.%m.%d", errors="coerce"
-        )
+        df_filtered["日付"] = pd.to_datetime(df_filtered["日付(yyyy.mm.dd)"], errors="coerce")
+        df_filtered["日付"] = df_filtered["日付"].dt.strftime("%Y/%m/%d")
         df_filtered = df_filtered.sort_values(["馬名", "日付"], ascending=[True, False])
 
     result = []
@@ -109,7 +114,7 @@ if entry_file and shutsuba_file:
         df_horse = df_filtered[df_filtered["馬名"] == horse]
         rows = [format_past_row(row) for _, row in df_horse.head(5).iterrows()]
         while len(rows) < 5:
-            rows.append(f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>")
+            rows.append(f"<div style='min-height:120px; color:{TEXT_COLOR};'>ー</div>")
         result.append([horse] + rows)
 
     df_past5 = pd.DataFrame(result, columns=["馬名"] + [f"{i+1}走前" for i in range(5)])
