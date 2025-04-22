@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import unicodedata
 
-st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
+st.set_page_config(page_title="\U0001f3c7 出馬表フィルタ", layout="wide")
 
 # スタイル（格子状＆コンパクトに）
 st.markdown("""
@@ -51,20 +51,12 @@ def format_past_row(row):
     kinryo = row.get("斤量", "")
     jokey = row.get("騎手", "")
     date = row.get("日付", "")
-
-    if pd.notnull(date):
-        try:
-            date = pd.to_datetime(date, format="%Y.%m.%d").strftime("%Y/%m/%d")
-        except:
-            date = ""
-    else:
-        date = ""
+    date_str = date.strftime("%Y/%m/%d") if pd.notnull(date) else ""
 
     html = f"""
     <div style='line-height:1.1; font-size:10px; text-align:center; color:{TEXT_COLOR}; min-height:100px'>
         <div style='font-size:13px; font-weight:bold;'>{chakujun}</div>
-        <div>{date}</div>
-        <div>{kyori}m / {time} / {level_to_colored_star(level)}</div>
+        <div>{date_str}<br>{kyori}m / {time} / {level_to_colored_star(level)}</div>
         <div>{agari} / {pos_text}<br>{weight}kg / {kinryo} / {jokey}</div>
     </div>
     """
@@ -88,6 +80,7 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
+# アップロード部
 entry_file = st.file_uploader("出走予定馬CSV", type="csv")
 shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
 
@@ -106,13 +99,10 @@ if entry_file and shutsuba_file:
     df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
 
     if "日付(yyyy.mm.dd)" in df_filtered.columns:
-        df_filtered["日付"] = pd.to_datetime(df_filtered["日付(yyyy.mm.dd)"], errors="coerce")
+        df_filtered["日付"] = pd.to_datetime(
+            df_filtered["日付(yyyy.mm.dd)"].astype(str), format="%Y.%m.%d", errors="coerce"
+        )
         df_filtered = df_filtered.sort_values(["馬名", "日付"], ascending=[True, False])
-        df_filtered["日付"] = df_filtered["日付"].dt.strftime("%Y.%m.%d")
-    elif "日付" in df_filtered.columns:
-        pass
-    else:
-        df_filtered["日付"] = ""
 
     result = []
     for horse in df_filtered["馬名"].unique():
@@ -127,6 +117,6 @@ if entry_file and shutsuba_file:
     df_merged["表示レース名"] = df_merged["開催地"].astype(str) + df_merged["R"].astype(str) + "R " + df_merged["レース名"].astype(str)
 
     for race_name in df_merged["表示レース名"].unique():
-        with st.expander(f"🏁 {race_name}"):
+        with st.expander(f"\U0001f3c1 {race_name}"):
             race_df = df_merged[df_merged["表示レース名"] == race_name].reset_index(drop=True)
             display_race_table(race_df, race_name)
