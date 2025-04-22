@@ -4,7 +4,7 @@ import unicodedata
 
 st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
 
-# スタイル（格子状＆コンパクトに）
+# スタイル：コンパクト格子形式
 st.markdown("""
     <style>
     td {
@@ -18,7 +18,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title(":clipboard: 出馬表フィルタ - シンプル表示")
+st.title(":clipboard: 出馬表フィルタ - 出走段階切り替え対応")
 
 TEXT_COLOR = "black" if st.get_option("theme.base") == "light" else "white"
 
@@ -76,13 +76,11 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-# --------------------------
-# 出走パターン選択タブ
-# --------------------------
+# タブ切り替え
 tab1, tab2 = st.tabs(["🟩 出走予定馬（想定）", "🟦 枠順確定後（確定出馬）"])
 
 with tab1:
-    st.subheader("出走予定馬CSV & 出馬表CSV（過去走付き）をアップロード")
+    st.subheader("出走予定馬CSV + 出馬表CSV（過去走付き）")
 
     entry_file = st.file_uploader("出走予定馬CSV", type="csv", key="entry")
     shutsuba_file = st.file_uploader("出馬表CSV", type="csv", key="shutsuba")
@@ -123,7 +121,7 @@ with tab1:
                 display_race_table(race_df, race_name)
 
 with tab2:
-    st.subheader("確定出馬表CSV（フィルタなし）をアップロード")
+    st.subheader("確定出馬表CSV（単体で表示）")
 
     final_file = st.file_uploader("確定出馬表CSV", type="csv", key="final")
 
