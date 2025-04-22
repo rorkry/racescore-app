@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import unicodedata
 
-st.set_page_config(page_title="🏇 出馬表フィルタ", layout="wide")
+st.set_page_config(page_title="🌎 出馬表フィルタ", layout="wide")
 
+# スタイル
 st.markdown("""
     <style>
     td {
@@ -41,14 +42,21 @@ def format_past_row(row):
         if pd.notnull(val):
             positions.append(str(int(float(val))))
     pos_text = "→".join(positions) if positions else ""
-    date = row.get("日付")
-    date_str = date.strftime("%Y/%m/%d") if pd.notnull(date) else ""
+    agari = row.get("上り3F", "")
+    chakujun = row.get("着順", "")
+    kyori = row.get("距離", "")
+    time = row.get("走破タイム", "")
+    level = row.get("レース印３", "")
+    weight = row.get("馬体重", "")
+    kinryo = row.get("斤量", "")
+    jokey = row.get("騎手", "")
+    date = row.get("日付", "")
 
     html = f"""
     <div style='line-height:1.1; font-size:10px; text-align:center; color:{TEXT_COLOR}; min-height:100px'>
-        <div style='font-size:13px; font-weight:bold;'>{row['着順']}</div>
-        <div>{date_str}<br>{row['距離']}m / {row['走破タイム']} / {level_to_colored_star(row['レース印３'])}</div>
-        <div>{row['上り3F']} / {pos_text}<br>{row['馬体重']}kg / {row['斤量']} / {row['騎手']}</div>
+        <div style='font-size:13px; font-weight:bold;'>{chakujun}</div>
+        <div>{date}<br>{kyori}m / {time} / {level_to_colored_star(level)}</div>
+        <div>{agari} / {pos_text}<br>{weight}kg / {kinryo} / {jokey}</div>
     </div>
     """
     return html
@@ -71,46 +79,47 @@ def display_race_table(df, race_label):
             html_row += "</tr></table>"
             st.markdown(html_row, unsafe_allow_html=True)
 
-# アップロード部
-tab1, tab2 = st.tabs(["🟩 出走予定馬（想定）", "🟦 枠順確定後（確定出馬）"])
+entry_file = st.file_uploader("出走予定馬CSV", type="csv")
+shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
 
-with tab1:
-    entry_file = st.file_uploader("出走予定馬CSV", type="csv")
-    shutsuba_file = st.file_uploader("出馬表CSV", type="csv")
+if entry_file and shutsuba_file:
+    df_entry = pd.read_csv(entry_file, encoding="utf-8")
+    df_shutsuba = pd.read_csv(shutsuba_file, encoding="shift_jis")
 
-    if entry_file and shutsuba_file:
-        df_entry = pd.read_csv(entry_file, encoding="utf-8")
-        df_shutsuba = pd.read_csv(shutsuba_file, encoding="shift_jis")
+    df_entry.columns = [c.strip() for c in df_entry.columns]
+    df_shutsuba.columns = [c.strip() for c in df_shutsuba.columns]
 
-        df_entry.columns = [c.strip() for c in df_entry.columns]
-        df_shutsuba.columns = [c.strip() for c in df_shutsuba.columns]
+    df_entry.drop(columns=["クラス名", "馬場状態", "距離", "頭数", "所在地"], errors="ignore", inplace=True)
+    df_entry["調教師"] = df_entry["所属"].astype(str) + "/" + df_entry["調教師"].astype(str)
+    df_entry.drop(columns=["所属"], inplace=True)
 
-        df_entry.drop(columns=["クラス名", "馬場状態", "距離", "頭数", "所在地"], errors="ignore", inplace=True)
-        df_entry["調教師"] = df_entry["所属"].astype(str) + "/" + df_entry["調教師"].astype(str)
-        df_entry.drop(columns=["所属"], inplace=True)
+    entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
+    df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
 
-        df_shutsuba["日付"] = pd.to_datetime(df_shutsuba["日付(yyyy.mm.dd)"], errors="coerce")
-        entry_names = df_entry["馬名"].astype(str).str.strip().unique().tolist()
-        df_filtered = df_shutsuba[df_shutsuba["馬名"].astype(str).str.strip().isin(entry_names)].copy()
-
+    # 日付の整形
+    if "日付(yyyy.mm.dd)" in df_filtered.columns:
+        df_filtered["日付"] = (
+            df_filtered["日付(yyyy.mm.dd)"].astype(str)
+            .str.replace(" ", "", regex=False)
+            .str.replace(".", "/", regex=False)
+        )
+        df_filtered["日付"] = pd.to_datetime(df_filtered["日付"], format="%Y/%m/%d", errors="coerce")
         df_filtered = df_filtered.sort_values(["馬名", "日付"], ascending=[True, False])
 
-        result = []
-        for horse in df_filtered["馬名"].unique():
-            df_horse = df_filtered[df_filtered["馬名"] == horse]
-            rows = [format_past_row(row) for _, row in df_horse.head(5).iterrows()]
-            while len(rows) < 5:
-                rows.append(f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>")
-            result.append([horse] + rows)
+    result = []
+    for horse in df_filtered["馬名"].unique():
+        df_horse = df_filtered[df_filtered["馬名"] == horse].copy()
+        df_horse["日付"] = df_horse["日付"].dt.strftime("%Y/%m/%d")
+        rows = [format_past_row(row) for _, row in df_horse.head(5).iterrows()]
+        while len(rows) < 5:
+            rows.append(f"<div style='min-height:100px; color:{TEXT_COLOR};'>ー</div>")
+        result.append([horse] + rows)
 
-        df_past5 = pd.DataFrame(result, columns=["馬名"] + [f"{i+1}走前" for i in range(5)])
-        df_merged = pd.merge(df_entry, df_past5, on="馬名", how="left")
-        df_merged["表示レース名"] = df_merged["開催地"].astype(str) + df_merged["R"].astype(str) + "R " + df_merged["レース名"].astype(str)
+    df_past5 = pd.DataFrame(result, columns=["馬名"] + [f"{i+1}走前" for i in range(5)])
+    df_merged = pd.merge(df_entry, df_past5, on="馬名", how="left")
+    df_merged["表示レース名"] = df_merged["開催地"].astype(str) + df_merged["R"].astype(str) + "R " + df_merged["レース名"].astype(str)
 
-        for race_name in df_merged["表示レース名"].unique():
-            with st.expander(f"🏁 {race_name}"):
-                race_df = df_merged[df_merged["表示レース名"] == race_name].reset_index(drop=True)
-                display_race_table(race_df, race_name)
-
-with tab2:
-    st.info("⚠️ 枠順確定後の表示機能は現在未実装です。")
+    for race_name in df_merged["表示レース名"].unique():
+        with st.expander(f"🏁 {race_name}"):
+            race_df = df_merged[df_merged["表示レース名"] == race_name].reset_index(drop=True)
+            display_race_table(race_df, race_name)
